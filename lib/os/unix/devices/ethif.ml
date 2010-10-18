@@ -16,6 +16,7 @@
 
 open Lwt
 open Printf
+open OS
 
 module Tap = struct
   type t = int
