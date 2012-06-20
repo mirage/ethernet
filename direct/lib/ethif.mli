@@ -17,25 +17,26 @@
 
 open Nettypes
 
-type frame = {
-  dmac : ethernet_mac; 
-  smac : ethernet_mac; 
-}
-
 type t
 
-val input : t -> string * int * int -> unit Lwt.t
+val input : t -> OS.Io_page.t -> unit Lwt.t
 val listen : t -> unit Lwt.t
-val output : t -> Bitstring.t list -> unit Lwt.t
-val output_arp : OS.Netif.t -> Nettypes.arp -> unit Lwt.t
+val write : t -> OS.Io_page.t -> unit Lwt.t
+val writev : t -> OS.Io_page.t list -> unit Lwt.t
 val create : OS.Netif.t -> t * unit Lwt.t
-val create_raw : OS.Netif.t -> t * unit Lwt.t
+
 val add_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val remove_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val query_arp : t -> Nettypes.ipv4_addr -> Nettypes.ethernet_mac Lwt.t
-val attach : t -> [< `IPv4 of Bitstring.t -> unit Lwt.t ] -> unit
+
+val get_etherbuf : t -> OS.Io_page.t Lwt.t
+
+val attach : t -> [< `IPv4 of OS.Io_page.t -> unit Lwt.t ] -> unit
 val detach : t -> [< `IPv4 ] -> unit
 val mac : t -> Nettypes.ethernet_mac
-val intercept:  t -> (string -> string * int * int  -> unit Lwt.t) -> unit 
 val get_ethif : t -> OS.Netif.t
-val send_raw : t -> Bitstring.t list -> unit Lwt.t 
+
+val sizeof_ethernet : int
+val set_ethernet_dst : string -> int -> OS.Io_page.t -> unit
+val set_ethernet_src : string -> int -> OS.Io_page.t -> unit
+val set_ethernet_ethertype : OS.Io_page.t -> int -> unit
