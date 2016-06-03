@@ -16,6 +16,10 @@
  *
  *)
 open Lwt.Infix
+open Result
+
+let src = Logs.Src.create "ethif" ~doc:"Mirage Ethernet"
+module Log = (val Logs.src_log src : Logs.LOG)
 
 module Make(Netif : V1_LWT.NETWORK) = struct
 
@@ -42,16 +46,18 @@ module Make(Netif : V1_LWT.NETWORK) = struct
     let of_interest dest =
       Macaddr.compare dest (mac t) = 0 || not (Macaddr.is_unicast dest)
     in
-    match Wire_structs.parse_ethernet_frame frame with
-    | Some (typ, destination, payload) when of_interest destination ->
+    match Ethif_unmarshal.of_cstruct frame with
+    | Ok header when of_interest header.destination ->
       begin
-        match typ with
-        | Some Wire_structs.ARP -> arpv4 payload
-        | Some Wire_structs.IPv4 -> ipv4 payload
-        | Some Wire_structs.IPv6 -> ipv6 payload
-        | None -> Lwt.return_unit (* TODO: default ethertype payload handler *)
+        let open Ethif_wire in
+        match header.ethertype with
+        | ARP -> arpv4 header.payload
+        | IPv4 -> ipv4 header.payload
+        | IPv6 -> ipv6 header.payload
       end
-    | _ -> Lwt.return_unit
+    | Ok header -> Lwt.return_unit
+    | Error s -> Log.debug (fun f -> f "Dropping Ethernet frame: %s" s);
+      Lwt.return_unit
 
   let write t frame =
     MProf.Trace.label "ethif.write";
@@ -63,7 +69,11 @@ module Make(Netif : V1_LWT.NETWORK) = struct
 
   let connect netif =
     MProf.Trace.label "ethif.connect";
-    Lwt.return (`Ok { netif })
+    let t = { netif } in
+    Log.info (fun f -> f "Connected Ethernet interface %s" (Macaddr.to_string (mac t)));
+    Lwt.return (`Ok t)
 
-  let disconnect _ = Lwt.return_unit
+  let disconnect t =
+    Log.info (fun f -> f "Disconnected Ethernet interface %s" (Macaddr.to_string (mac t)));
+    Lwt.return_unit
 end
