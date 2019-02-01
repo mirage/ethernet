@@ -1,7 +1,7 @@
 type t = {
   source : Macaddr.t;
   destination : Macaddr.t;
-  ethertype : Ethif_wire.ethertype;
+  ethertype : Ethernet_wire.ethertype;
 }
 
 type error = string

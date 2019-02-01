@@ -17,7 +17,7 @@
  *)
 open Lwt.Infix
 
-let src = Logs.Src.create "ethif" ~doc:"Mirage Ethernet"
+let src = Logs.Src.create "ethernet" ~doc:"Mirage Ethernet"
 module Log = (val Logs.src_log src : Logs.LOG)
 
 let default_mtu = 1500
@@ -40,15 +40,15 @@ module Make(Netif : Mirage_net_lwt.S) = struct
   let mtu t = t.mtu
 
   let input ~arpv4 ~ipv4 ~ipv6 t frame =
-    let open Ethif_packet in
-    MProf.Trace.label "ethif.input";
+    let open Ethernet_packet in
+    MProf.Trace.label "ethernet.input";
     let of_interest dest =
       Macaddr.compare dest (mac t) = 0 || not (Macaddr.is_unicast dest)
     in
     match Unmarshal.of_cstruct frame with
     | Ok (header, payload) when of_interest header.destination ->
       begin
-        let open Ethif_wire in
+        let open Ethernet_wire in
         match header.ethertype with
         | ARP -> arpv4 payload
         | IPv4 -> ipv4 payload
@@ -60,7 +60,7 @@ module Make(Netif : Mirage_net_lwt.S) = struct
       Lwt.return_unit
 
   let write t frame =
-    MProf.Trace.label "ethif.write";
+    MProf.Trace.label "ethernet.write";
     Netif.write t.netif frame >|= function
     | Ok () -> Ok ()
     | Error e ->
@@ -68,7 +68,7 @@ module Make(Netif : Mirage_net_lwt.S) = struct
       Error e
 
   let writev t bufs =
-    MProf.Trace.label "ethif.writev";
+    MProf.Trace.label "ethernet.writev";
     Netif.writev t.netif bufs >|= function
     | Ok () -> Ok ()
     | Error e ->
@@ -76,7 +76,7 @@ module Make(Netif : Mirage_net_lwt.S) = struct
       Error e
 
   let connect ?(mtu = default_mtu) netif =
-    MProf.Trace.label "ethif.connect";
+    MProf.Trace.label "ethernet.connect";
     let t = { netif; mtu } in
     Log.info (fun f -> f "Connected Ethernet interface %a" Macaddr.pp (mac t));
     Lwt.return t
