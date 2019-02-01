@@ -1,25 +1,24 @@
-open Ethif_wire
-
 type t = {
   source : Macaddr.t;
   destination : Macaddr.t;
-  ethertype : Ethif_wire.ethertype;
+  ethertype : Ethernet_wire.ethertype;
 }
 
 type error = string
 
 let pp fmt t =
   Format.fprintf fmt "%a -> %a: %s" Macaddr.pp t.source
-    Macaddr.pp t.destination (Ethif_wire.ethertype_to_string t.ethertype)
+    Macaddr.pp t.destination (Ethernet_wire.ethertype_to_string t.ethertype)
 
 let equal {source; destination; ethertype} q =
   (Macaddr.compare source q.source) = 0 &&
   (Macaddr.compare destination q.destination) = 0 &&
-  Ethif_wire.(compare (ethertype_to_int ethertype) (ethertype_to_int q.ethertype)) = 0
+  Ethernet_wire.(compare (ethertype_to_int ethertype) (ethertype_to_int q.ethertype)) = 0
 
 module Unmarshal = struct
 
   let of_cstruct frame =
+    let open Ethernet_wire in
     if Cstruct.len frame >= sizeof_ethernet then
       match get_ethernet_ethertype frame |> int_to_ethertype with
       | None -> Error (Printf.sprintf "unknown ethertype 0x%x in frame"
@@ -38,11 +37,12 @@ module Marshal = struct
   open Rresult
 
   let check_len buf =
-    if sizeof_ethernet > Cstruct.len buf then
+    if Ethernet_wire.sizeof_ethernet > Cstruct.len buf then
       Error "Not enough space for an Ethernet header"
     else Ok ()
 
   let unsafe_fill t buf =
+    let open Ethernet_wire in
     set_ethernet_dst (Macaddr.to_bytes t.destination) 0 buf;
     set_ethernet_src (Macaddr.to_bytes t.source) 0 buf;
     set_ethernet_ethertype buf (ethertype_to_int t.ethertype);
@@ -53,7 +53,7 @@ module Marshal = struct
     Ok (unsafe_fill t buf)
 
   let make_cstruct t =
-    let buf = Cstruct.create sizeof_ethernet in
+    let buf = Cstruct.create Ethernet_wire.sizeof_ethernet in
     Cstruct.memset buf 0x00; (* can be removed in the future *)
     unsafe_fill t buf;
     buf
