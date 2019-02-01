@@ -24,7 +24,6 @@ depends: [
   "cstruct" {>= "3.0.2"}
   "mirage-net-lwt" {>= "1.0.0"}
   "mirage-protocols-lwt" {>= "1.4.0"}
-  "ipaddr" {>= "3.0.0"}
   "macaddr"
   "mirage-profile" {>= "0.5"}
   "fmt"
