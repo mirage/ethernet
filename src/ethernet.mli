@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2019 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
+
+(** OCaml Ethernet (IEEE 802.3) layer *)
 
 module Make ( N:Mirage_net_lwt.S) : sig
   include Mirage_protocols_lwt.ETHIF

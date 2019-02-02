@@ -1,3 +1,5 @@
-### v0.1.0 (2019-02-01)
+### v1.0.0 (2019-02-01)
 
-* initial import from mirage-tcpip
+* Minor ocamldoc improvements (@avsm).
+* Initial import from mirage-tcpip (@hannesm).
+  Based on source code from mirage-tcpip.3.6.0.
