@@ -56,21 +56,32 @@ module Make(Netif : Mirage_net_lwt.S) = struct
       Log.debug (fun f -> f "dropping Ethernet frame: %s" s);
       Lwt.return_unit
 
-  let write t frame =
-    MProf.Trace.label "ethernet.write";
-    Netif.write t.netif frame >|= function
-    | Ok () -> Ok ()
-    | Error e ->
-      Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
-      Error e
+  let proto_to_type = function
+    | `ARP -> Ethernet_wire.ARP
+    | `IPv4 -> Ethernet_wire.IPv4
+    | `IPv6 -> Ethernet_wire.IPv6
 
-  let writev t bufs =
-    MProf.Trace.label "ethernet.writev";
-    Netif.writev t.netif bufs >|= function
-    | Ok () -> Ok ()
-    | Error e ->
-      Log.warn (fun f -> f "netif writev errored %a" Netif.pp_error e) ;
-      Error e
+  let write t ?src destination proto ?size payload =
+    MProf.Trace.label "ethernet.write";
+    let source = match src with None -> mac t | Some x -> x in
+    let frame = Netif.allocate_frame ?size t.netif in
+    match
+      Ethernet_packet.Marshal.into_cstruct
+        { source ; destination ; ethertype = proto_to_type proto }
+        frame
+    with
+    | Error msg ->
+      Log.err (fun m -> m "error %s while marshalling ethernet header into allocated buffer" msg) ;
+      Lwt.return (Error `Unimplemented)
+    | Ok () ->
+      let off = payload (Cstruct.shift frame Ethernet_wire.sizeof_ethernet) in
+      let len = off + Ethernet_wire.sizeof_ethernet in
+      assert (len <= Cstruct.len frame && len > 0) ;
+      Netif.write t.netif (Cstruct.set_len frame len) >|= function
+      | Ok () -> Ok ()
+      | Error e ->
+        Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
+        Error e
 
   let connect netif =
     MProf.Trace.label "ethernet.connect";
