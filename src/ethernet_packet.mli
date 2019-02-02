@@ -15,11 +15,10 @@ end
 module Marshal : sig
   (** [into_cstruct t buf] writes a 14-byte ethernet header representing
       [t.ethertype], [t.src_mac], and [t.dst_mac] to [buf] at offset 0.
-      Returns [Ok ()] on success and [Error error] on failure.
-      Currently, the only possibility for failure
-      is a [buf] too small to contain the header; to avoid this, provide a
-      buffer of size at least 14. *)
-  val into_cstruct : t -> Cstruct.t -> (unit, error) result
+
+      @raise Invalid_argument if the buffer [buf] is too small for the ethernet
+      header (14 bytes). *)
+  val into_cstruct : t -> Cstruct.t -> unit
 
   (** given a [t], construct and return an Ethernet header representing
       [t.ethertype], [t.source], and [t.destination].  [make_cstruct] will allocate

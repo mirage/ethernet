@@ -34,13 +34,6 @@ module Unmarshal = struct
 end
 
 module Marshal = struct
-  open Rresult
-
-  let check_len buf =
-    if Ethernet_wire.sizeof_ethernet > Cstruct.len buf then
-      Error "Not enough space for an Ethernet header"
-    else Ok ()
-
   let unsafe_fill t buf =
     let open Ethernet_wire in
     set_ethernet_dst (Macaddr.to_bytes t.destination) 0 buf;
@@ -48,13 +41,10 @@ module Marshal = struct
     set_ethernet_ethertype buf (ethertype_to_int t.ethertype);
     ()
 
-  let into_cstruct t buf =
-    check_len buf >>= fun () ->
-    Ok (unsafe_fill t buf)
+  let into_cstruct t buf = unsafe_fill t buf
 
   let make_cstruct t =
     let buf = Cstruct.create Ethernet_wire.sizeof_ethernet in
-    Cstruct.memset buf 0x00; (* can be removed in the future *)
     unsafe_fill t buf;
     buf
 end
