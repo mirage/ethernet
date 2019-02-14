@@ -26,8 +26,10 @@ module Make(Netif : Mirage_net_lwt.S) = struct
   type buffer = Cstruct.t
   type macaddr = Macaddr.t
 
-  type error = Netif.error
-  let pp_error = Netif.pp_error
+  type error = [ Mirage_protocols.Ethif.error | `Netif of Netif.error ]
+  let pp_error ppf = function
+    | #Mirage_protocols.Ethif.error as e -> Mirage_protocols.Ethif.pp_error ppf e
+    | `Netif e -> Netif.pp_error ppf e
 
   type t = {
     netif: Netif.t;
@@ -57,24 +59,33 @@ module Make(Netif : Mirage_net_lwt.S) = struct
 
   let write t ?src destination ethertype ?size payload =
     MProf.Trace.label "ethernet.write";
-    let source = match src with None -> mac t | Some x -> x in
-    let fill frame =
-      match
-        Ethernet_packet.Marshal.into_cstruct
-          { source ; destination ; ethertype }
-          frame
-      with
-      | Error msg ->
-        Log.err (fun m -> m "error %s while marshalling ethernet header into allocated buffer" msg);
-        0
-      | Ok () ->
-        payload (Cstruct.shift frame Ethernet_wire.sizeof_ethernet)
+    let source = match src with None -> mac t | Some x -> x
+    and eth_hdr_size = Ethernet_wire.sizeof_ethernet
+    and mtu = mtu t
     in
-    Netif.write t.netif ?size fill >|= function
-    | Ok () -> Ok ()
-    | Error e ->
-      Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
-      Error e
+    match
+      match size with
+      | None -> Ok mtu
+      | Some s -> if s > mtu then Error () else Ok s
+    with
+    | Error () -> Lwt.return (Error `Exceeds_mtu)
+    | Ok size ->
+      let size = eth_hdr_size + size in
+      let hdr = { Ethernet_packet.source ; destination ; ethertype } in
+      let fill frame =
+        match Ethernet_packet.Marshal.into_cstruct hdr frame with
+        | Error msg ->
+          Log.err (fun m -> m "error %s while marshalling ethernet header into allocated buffer" msg);
+          0
+        | Ok () ->
+          let len = payload (Cstruct.shift frame eth_hdr_size) in
+          eth_hdr_size + len
+      in
+      Netif.write t.netif ~size fill >|= function
+      | Ok () -> Ok ()
+      | Error e ->
+        Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
+        Error (`Netif e)
 
   let connect netif =
     MProf.Trace.label "ethernet.connect";
