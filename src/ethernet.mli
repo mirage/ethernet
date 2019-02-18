@@ -18,7 +18,7 @@
 (** OCaml Ethernet (IEEE 802.3) layer *)
 
 module Make (N : Mirage_net_lwt.S) : sig
-  include Mirage_protocols_lwt.ETHIF
+  include Mirage_protocols_lwt.ETHERNET
 
   val connect : N.t -> t Lwt.t
   (** [connect netif] connects an ethernet layer on top of the raw

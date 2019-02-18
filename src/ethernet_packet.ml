@@ -1,16 +1,14 @@
-open Mirage_protocols
-
 type t = {
   source : Macaddr.t;
   destination : Macaddr.t;
-  ethertype : Ethif.proto;
+  ethertype : Mirage_protocols.Ethernet.proto;
 }
 
 type error = string
 
 let pp fmt t =
   Format.fprintf fmt "%a -> %a: %a" Macaddr.pp t.source
-    Macaddr.pp t.destination Ethif.pp_proto t.ethertype
+    Macaddr.pp t.destination Mirage_protocols.Ethernet.pp_proto t.ethertype
 
 let equal {source; destination; ethertype} q =
   (Macaddr.compare source q.source) = 0 &&

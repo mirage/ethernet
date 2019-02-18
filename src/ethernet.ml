@@ -26,9 +26,9 @@ module Make(Netif : Mirage_net_lwt.S) = struct
   type buffer = Cstruct.t
   type macaddr = Macaddr.t
 
-  type error = [ Mirage_protocols.Ethif.error | `Netif of Netif.error ]
+  type error = [ Mirage_protocols.Ethernet.error | `Netif of Netif.error ]
   let pp_error ppf = function
-    | #Mirage_protocols.Ethif.error as e -> Mirage_protocols.Ethif.pp_error ppf e
+    | #Mirage_protocols.Ethernet.error as e -> Mirage_protocols.Ethernet.pp_error ppf e
     | `Netif e -> Netif.pp_error ppf e
 
   type t = {
