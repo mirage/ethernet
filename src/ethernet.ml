@@ -20,24 +20,23 @@ open Lwt.Infix
 let src = Logs.Src.create "ethernet" ~doc:"Mirage Ethernet"
 module Log = (val Logs.src_log src : Logs.LOG)
 
-let default_mtu = 1500
-
 module Make(Netif : Mirage_net_lwt.S) = struct
 
   type 'a io = 'a Lwt.t
   type buffer = Cstruct.t
   type macaddr = Macaddr.t
 
-  type error = Netif.error
-  let pp_error = Netif.pp_error
+  type error = [ Mirage_protocols.Ethif.error | `Netif of Netif.error ]
+  let pp_error ppf = function
+    | #Mirage_protocols.Ethif.error as e -> Mirage_protocols.Ethif.pp_error ppf e
+    | `Netif e -> Netif.pp_error ppf e
 
   type t = {
     netif: Netif.t;
-    mtu: int;
   }
 
   let mac t = Netif.mac t.netif
-  let mtu t = t.mtu
+  let mtu t = Netif.mtu t.netif (* interface MTU excludes Ethernet header *)
 
   let input ~arpv4 ~ipv4 ~ipv6 t frame =
     let open Ethernet_packet in
@@ -48,36 +47,49 @@ module Make(Netif : Mirage_net_lwt.S) = struct
     match Unmarshal.of_cstruct frame with
     | Ok (header, payload) when of_interest header.destination ->
       begin
-        let open Ethernet_wire in
-        match header.ethertype with
-        | ARP -> arpv4 payload
-        | IPv4 -> ipv4 payload
-        | IPv6 -> ipv6 payload
+        match header.Ethernet_packet.ethertype with
+        | `ARP -> arpv4 payload
+        | `IPv4 -> ipv4 payload
+        | `IPv6 -> ipv6 payload
       end
     | Ok _ -> Lwt.return_unit
     | Error s ->
-      Log.debug (fun f -> f "Dropping Ethernet frame: %s" s);
+      Log.debug (fun f -> f "dropping Ethernet frame: %s" s);
       Lwt.return_unit
 
-  let write t frame =
+  let write t ?src destination ethertype ?size payload =
     MProf.Trace.label "ethernet.write";
-    Netif.write t.netif frame >|= function
-    | Ok () -> Ok ()
-    | Error e ->
-      Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
-      Error e
+    let source = match src with None -> mac t | Some x -> x
+    and eth_hdr_size = Ethernet_wire.sizeof_ethernet
+    and mtu = mtu t
+    in
+    match
+      match size with
+      | None -> Ok mtu
+      | Some s -> if s > mtu then Error () else Ok s
+    with
+    | Error () -> Lwt.return (Error `Exceeds_mtu)
+    | Ok size ->
+      let size = eth_hdr_size + size in
+      let hdr = { Ethernet_packet.source ; destination ; ethertype } in
+      let fill frame =
+        match Ethernet_packet.Marshal.into_cstruct hdr frame with
+        | Error msg ->
+          Log.err (fun m -> m "error %s while marshalling ethernet header into allocated buffer" msg);
+          0
+        | Ok () ->
+          let len = payload (Cstruct.shift frame eth_hdr_size) in
+          eth_hdr_size + len
+      in
+      Netif.write t.netif ~size fill >|= function
+      | Ok () -> Ok ()
+      | Error e ->
+        Log.warn (fun f -> f "netif write errored %a" Netif.pp_error e) ;
+        Error (`Netif e)
 
-  let writev t bufs =
-    MProf.Trace.label "ethernet.writev";
-    Netif.writev t.netif bufs >|= function
-    | Ok () -> Ok ()
-    | Error e ->
-      Log.warn (fun f -> f "netif writev errored %a" Netif.pp_error e) ;
-      Error e
-
-  let connect ?(mtu = default_mtu) netif =
+  let connect netif =
     MProf.Trace.label "ethernet.connect";
-    let t = { netif; mtu } in
+    let t = { netif } in
     Log.info (fun f -> f "Connected Ethernet interface %a" Macaddr.pp (mac t));
     Lwt.return t
 
