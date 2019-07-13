@@ -25,8 +25,8 @@ module Unmarshal = struct
                                 (get_ethernet_ethertype frame))
       | Some ethertype ->
         let payload = Cstruct.shift frame sizeof_ethernet
-        and source = Macaddr.of_bytes_exn (copy_ethernet_src frame)
-        and destination = Macaddr.of_bytes_exn (copy_ethernet_dst frame)
+        and source = Macaddr.of_octets_exn (copy_ethernet_src frame)
+        and destination = Macaddr.of_octets_exn (copy_ethernet_dst frame)
         in
         Ok ({ destination; source; ethertype;}, payload)
     else
@@ -43,8 +43,8 @@ module Marshal = struct
 
   let unsafe_fill t buf =
     let open Ethernet_wire in
-    set_ethernet_dst (Macaddr.to_bytes t.destination) 0 buf;
-    set_ethernet_src (Macaddr.to_bytes t.source) 0 buf;
+    set_ethernet_dst (Macaddr.to_octets t.destination) 0 buf;
+    set_ethernet_src (Macaddr.to_octets t.source) 0 buf;
     set_ethernet_ethertype buf (ethertype_to_int t.ethertype);
     ()
 
