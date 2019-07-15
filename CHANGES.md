@@ -1,3 +1,7 @@
+### v2.1.0 (2019-07-15)
+
+* Use ipaddr.4.0.0 interfaces (#5 @avsm)
+
 ### v2.0.0 (2019-02-24)
 
 * Adjust to mirage-protocols 2.0.0 and mirage-net 2.0.0 changes
