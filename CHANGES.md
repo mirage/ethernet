@@ -1,6 +1,6 @@
-### dev
+### v2.1.0 (2019-07-15)
 
-* Use ipaddr.4.0.0 interfaces (@avsm)
+* Use ipaddr.4.0.0 interfaces (#5 @avsm)
 
 ### v2.0.0 (2019-02-24)
 
