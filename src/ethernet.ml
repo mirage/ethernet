@@ -20,12 +20,7 @@ open Lwt.Infix
 let src = Logs.Src.create "ethernet" ~doc:"Mirage Ethernet"
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Make(Netif : Mirage_net_lwt.S) = struct
-
-  type 'a io = 'a Lwt.t
-  type buffer = Cstruct.t
-  type macaddr = Macaddr.t
-
+module Make(Netif : Mirage_net.S) = struct
   type error = [ Mirage_protocols.Ethernet.error | `Netif of Netif.error ]
   let pp_error ppf = function
     | #Mirage_protocols.Ethernet.error as e -> Mirage_protocols.Ethernet.pp_error ppf e
