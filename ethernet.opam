@@ -26,7 +26,6 @@ depends: [
   "mirage-protocols" {>= "4.0.0"}
   "macaddr" {>= "4.0.0"}
   "mirage-profile" {>= "0.5"}
-  "fmt"
   "lwt" {>= "3.0.0"}
   "logs" {>= "0.6.0"}
 ]
