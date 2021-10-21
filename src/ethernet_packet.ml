@@ -19,7 +19,7 @@ module Unmarshal = struct
 
   let of_cstruct frame =
     let open Ethernet_wire in
-    if Cstruct.len frame >= sizeof_ethernet then
+    if Cstruct.length frame >= sizeof_ethernet then
       match get_ethernet_ethertype frame |> int_to_ethertype with
       | None -> Error (Printf.sprintf "unknown ethertype 0x%x in frame"
                                 (get_ethernet_ethertype frame))
@@ -34,10 +34,8 @@ module Unmarshal = struct
 end
 
 module Marshal = struct
-  open Rresult
-
   let check_len buf =
-    if Ethernet_wire.sizeof_ethernet > Cstruct.len buf then
+    if Ethernet_wire.sizeof_ethernet > Cstruct.length buf then
       Error "Not enough space for an Ethernet header"
     else Ok ()
 
@@ -49,12 +47,10 @@ module Marshal = struct
     ()
 
   let into_cstruct t buf =
-    check_len buf >>= fun () ->
-    Ok (unsafe_fill t buf)
+    Result.map (fun () -> unsafe_fill t buf) (check_len buf)
 
   let make_cstruct t =
     let buf = Cstruct.create Ethernet_wire.sizeof_ethernet in
-    Cstruct.memset buf 0x00; (* can be removed in the future *)
     unsafe_fill t buf;
     buf
 end
