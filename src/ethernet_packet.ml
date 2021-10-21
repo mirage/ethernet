@@ -34,8 +34,6 @@ module Unmarshal = struct
 end
 
 module Marshal = struct
-  open Rresult
-
   let check_len buf =
     if Ethernet_wire.sizeof_ethernet > Cstruct.len buf then
       Error "Not enough space for an Ethernet header"
@@ -49,8 +47,7 @@ module Marshal = struct
     ()
 
   let into_cstruct t buf =
-    check_len buf >>= fun () ->
-    Ok (unsafe_fill t buf)
+    Result.map (fun () -> unsafe_fill t buf) (check_len buf)
 
   let make_cstruct t =
     let buf = Cstruct.create Ethernet_wire.sizeof_ethernet in
