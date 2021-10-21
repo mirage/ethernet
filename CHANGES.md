@@ -1,3 +1,8 @@
+### v2.2.1 (2021-10-21)
+
+* Remove rresult dependency (#7 @hannesm)
+* Avoid deprecated Cstruct.len, use Cstruct.length (#7 @hannesm)
+
 ### v2.2.0 (2019-10-30)
 
 * Adapt to mirage-net 3.0.0 and mirage-protocols 4.0.0 changes (#6 @hannesm)
