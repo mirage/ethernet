@@ -1,3 +1,11 @@
+### v3.0.0 (2021-12-09)
+
+* Include Mirage_protocols.ETHERNET module type in ethernet directly, remove
+  dependency on mirage-protocols (#8 @hannesm)
+* The ethernet library is now wrapped, this means a lot of API breakage.
+  The most used binding, Ethernet_wire.sizeof_ethernet is now known as
+  Ethernet.Packet.sizeof_ethernet. (#8 @hannesm)
+
 ### v2.2.1 (2021-10-21)
 
 * Remove rresult dependency (#7 @hannesm)
