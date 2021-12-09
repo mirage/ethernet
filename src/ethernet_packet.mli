@@ -1,7 +1,10 @@
+type proto = [ `ARP | `IPv4 | `IPv6 ]
+val pp_proto: proto Fmt.t
+
 type t = {
   source : Macaddr.t;
   destination : Macaddr.t;
-  ethertype : Mirage_protocols.Ethernet.proto;
+  ethertype : proto;
 }
 
 type error = string
@@ -12,6 +15,7 @@ val equal : t -> t -> bool
 module Unmarshal : sig
   val of_cstruct : Cstruct.t -> ((t * Cstruct.t), error) result
 end
+
 module Marshal : sig
   (** [into_cstruct t buf] writes a 14-byte ethernet header representing
       [t.ethertype], [t.src_mac], and [t.dst_mac] to [buf] at offset 0.

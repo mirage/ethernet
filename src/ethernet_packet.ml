@@ -1,14 +1,21 @@
+type proto = [ `ARP | `IPv4 | `IPv6 ]
+
+let pp_proto ppf = function
+  | `ARP -> Fmt.string ppf "ARP"
+  | `IPv4 -> Fmt.string ppf "IPv4"
+  | `IPv6 -> Fmt.string ppf "IPv6"
+
 type t = {
   source : Macaddr.t;
   destination : Macaddr.t;
-  ethertype : Mirage_protocols.Ethernet.proto;
+  ethertype : proto;
 }
 
 type error = string
 
 let pp fmt t =
   Format.fprintf fmt "%a -> %a: %a" Macaddr.pp t.source
-    Macaddr.pp t.destination Mirage_protocols.Ethernet.pp_proto t.ethertype
+    Macaddr.pp t.destination pp_proto t.ethertype
 
 let equal {source; destination; ethertype} q =
   (Macaddr.compare source q.source) = 0 &&

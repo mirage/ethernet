@@ -15,15 +15,53 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
+
+module Packet = struct
+  type proto = Ethernet_packet.proto
+  let pp_proto = Ethernet_packet.pp_proto
+
+  type t = Ethernet_packet.t =  {
+    source : Macaddr.t;
+    destination : Macaddr.t;
+    ethertype : proto;
+  }
+
+
+  let sizeof_ethernet = Ethernet_wire.sizeof_ethernet
+
+  let of_cstruct = Ethernet_packet.Unmarshal.of_cstruct
+
+  let into_cstruct = Ethernet_packet.Marshal.into_cstruct
+
+  let make_cstruct = Ethernet_packet.Marshal.make_cstruct
+end
+
+module type S = sig
+  type nonrec error = private [> `Exceeds_mtu ]
+  val pp_error: error Fmt.t
+  type t
+  val disconnect : t -> unit Lwt.t
+  val write: t -> ?src:Macaddr.t -> Macaddr.t -> Packet.proto -> ?size:int ->
+    (Cstruct.t -> int) -> (unit, error) result Lwt.t
+  val mac: t -> Macaddr.t
+  val mtu: t -> int
+  val input:
+    arpv4:(Cstruct.t -> unit Lwt.t) ->
+    ipv4:(Cstruct.t -> unit Lwt.t) ->
+    ipv6:(Cstruct.t -> unit Lwt.t) ->
+    t -> Cstruct.t -> unit Lwt.t
+end
+
 open Lwt.Infix
 
 let src = Logs.Src.create "ethernet" ~doc:"Mirage Ethernet"
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Make(Netif : Mirage_net.S) = struct
-  type error = [ Mirage_protocols.Ethernet.error | `Netif of Netif.error ]
+module Make (Netif : Mirage_net.S) = struct
+
+  type error = [ `Exceeds_mtu | `Netif of Netif.error ]
   let pp_error ppf = function
-    | #Mirage_protocols.Ethernet.error as e -> Mirage_protocols.Ethernet.pp_error ppf e
+    | `Exceeds_mtu -> Fmt.string ppf "exceeds MTU"
     | `Netif e -> Netif.pp_error ppf e
 
   type t = {
