@@ -11,6 +11,19 @@ type t = {
   ethertype : proto;
 }
 
+let sizeof_ethernet = 14
+
+let ethertype_to_int = function
+  | `ARP -> 0x0806
+  | `IPv4 -> 0x0800
+  | `IPv6 -> 0x86dd
+
+let int_to_ethertype = function
+  | 0x0806 -> Some `ARP
+  | 0x0800 -> Some `IPv4
+  | 0x86dd -> Some `IPv6
+  | _ -> None
+
 type error = string
 
 let pp fmt t =
@@ -20,20 +33,19 @@ let pp fmt t =
 let equal {source; destination; ethertype} q =
   (Macaddr.compare source q.source) = 0 &&
   (Macaddr.compare destination q.destination) = 0 &&
-  Ethernet_wire.(compare (ethertype_to_int ethertype) (ethertype_to_int q.ethertype)) = 0
+  compare (ethertype_to_int ethertype) (ethertype_to_int q.ethertype) = 0
 
 module Unmarshal = struct
 
   let of_cstruct frame =
-    let open Ethernet_wire in
     if Cstruct.length frame >= sizeof_ethernet then
-      match get_ethernet_ethertype frame |> int_to_ethertype with
-      | None -> Error (Printf.sprintf "unknown ethertype 0x%x in frame"
-                                (get_ethernet_ethertype frame))
+      let raw_typ = Cstruct.BE.get_uint16 frame 12 in
+      match raw_typ |> int_to_ethertype with
+      | None -> Error (Printf.sprintf "unknown ethertype 0x%x in frame" raw_typ)
       | Some ethertype ->
         let payload = Cstruct.shift frame sizeof_ethernet
-        and source = Macaddr.of_octets_exn (copy_ethernet_src frame)
-        and destination = Macaddr.of_octets_exn (copy_ethernet_dst frame)
+        and source = Macaddr.of_octets_exn (Cstruct.to_string ~off:6 ~len:6 frame)
+        and destination = Macaddr.of_octets_exn (Cstruct.to_string ~off:0 ~len:6 frame)
         in
         Ok ({ destination; source; ethertype;}, payload)
     else
@@ -42,22 +54,20 @@ end
 
 module Marshal = struct
   let check_len buf =
-    if Ethernet_wire.sizeof_ethernet > Cstruct.length buf then
+    if sizeof_ethernet > Cstruct.length buf then
       Error "Not enough space for an Ethernet header"
     else Ok ()
 
   let unsafe_fill t buf =
-    let open Ethernet_wire in
-    set_ethernet_dst (Macaddr.to_octets t.destination) 0 buf;
-    set_ethernet_src (Macaddr.to_octets t.source) 0 buf;
-    set_ethernet_ethertype buf (ethertype_to_int t.ethertype);
-    ()
+    Cstruct.blit_from_string (Macaddr.to_octets t.destination) 0 buf 0 6;
+    Cstruct.blit_from_string (Macaddr.to_octets t.source) 0 buf 6 6;
+    Cstruct.BE.set_uint16 buf 12 (ethertype_to_int t.ethertype)
 
   let into_cstruct t buf =
     Result.map (fun () -> unsafe_fill t buf) (check_len buf)
 
   let make_cstruct t =
-    let buf = Cstruct.create Ethernet_wire.sizeof_ethernet in
+    let buf = Cstruct.create sizeof_ethernet in
     unsafe_fill t buf;
     buf
 end
