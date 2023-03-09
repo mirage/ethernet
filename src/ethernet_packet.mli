@@ -7,6 +7,8 @@ type t = {
   ethertype : proto;
 }
 
+val sizeof_ethernet : int
+
 type error = string
 
 val pp : Format.formatter -> t -> unit

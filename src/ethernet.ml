@@ -27,7 +27,7 @@ module Packet = struct
   }
 
 
-  let sizeof_ethernet = Ethernet_wire.sizeof_ethernet
+  let sizeof_ethernet = Ethernet_packet.sizeof_ethernet
 
   let of_cstruct = Ethernet_packet.Unmarshal.of_cstruct
 
@@ -93,7 +93,7 @@ module Make (Netif : Mirage_net.S) = struct
   let write t ?src destination ethertype ?size payload =
     MProf.Trace.label "ethernet.write";
     let source = match src with None -> mac t | Some x -> x
-    and eth_hdr_size = Ethernet_wire.sizeof_ethernet
+    and eth_hdr_size = Ethernet_packet.sizeof_ethernet
     and mtu = mtu t
     in
     match

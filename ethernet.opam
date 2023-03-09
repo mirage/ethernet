@@ -21,7 +21,6 @@ depends: [
   "dune"
   "ocaml" {>= "4.08.0"}
   "cstruct" {>= "6.0.0"}
-  "ppx_cstruct"
   "mirage-net" {>= "3.0.0"}
   "macaddr" {>= "4.0.0"}
   "mirage-profile" {>= "0.5"}
