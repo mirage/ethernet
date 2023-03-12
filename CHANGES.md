@@ -1,3 +1,7 @@
+### v3.2.0 (2023-03-12)
+
+* Remove mirage-profile dependency (#11 @hannesm)
+
 ### v3.1.0 (2023-03-09)
 
 * Remove ppx_cstruct usage, include Ethernet_wire in Ethernet_packet (#10 @hannesm)
