@@ -73,7 +73,6 @@ module Make (Netif : Mirage_net.S) = struct
 
   let input ~arpv4 ~ipv4 ~ipv6 t frame =
     let open Ethernet_packet in
-    MProf.Trace.label "ethernet.input";
     let of_interest dest =
       Macaddr.compare dest (mac t) = 0 || not (Macaddr.is_unicast dest)
     in
@@ -91,7 +90,6 @@ module Make (Netif : Mirage_net.S) = struct
       Lwt.return_unit
 
   let write t ?src destination ethertype ?size payload =
-    MProf.Trace.label "ethernet.write";
     let source = match src with None -> mac t | Some x -> x
     and eth_hdr_size = Ethernet_packet.sizeof_ethernet
     and mtu = mtu t
@@ -121,7 +119,6 @@ module Make (Netif : Mirage_net.S) = struct
         Error (`Netif e)
 
   let connect netif =
-    MProf.Trace.label "ethernet.connect";
     let t = { netif } in
     Log.info (fun f -> f "Connected Ethernet interface %a" Macaddr.pp (mac t));
     Lwt.return t
