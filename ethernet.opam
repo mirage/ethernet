@@ -33,3 +33,4 @@ description: """
 (specified by IEEE 802.3) layer implementation for the
 [Mirage operating system](https://mirage.io).
 """
+x-maintenance-intent: [ "(latest)" ]
